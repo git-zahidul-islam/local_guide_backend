@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  password          String
+  name              String
+  role              Role      @default(TOURIST)
+  profilePic        String?
+  bio               String?
+  languages         String[]
+  
+  // Guide-specific fields
+  expertise         String[]
+  dailyRate         Float?
+  isVerified        Boolean   @default(false)
+  
+  // Tourist-specific fields
+  travelPreferences String[]
+  
+  // Relations
+  listings          Listing[]
+  bookingsAsTourist Booking[] @relation("TouristBookings")
+  bookingsAsGuide   Booking[] @relation("GuideBookings")
+  reviewsGiven      Review[]  @relation("ReviewGiver")
+  reviewsReceived   Review[]  @relation("ReviewReceiver")
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Listing {
+  id           String    @id @default(cuid())
+  title        String
+  description  String
+  tourFee      Float
+  duration     Int       // in hours
+  meetingPoint String
+  maxGroupSize Int
+  images       String[]
+  category     Category
+  city         String
+  isActive     Boolean   @default(true)
+  
+  // Relations
+  guide        User      @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  guideId      String
+  bookings     Booking[]
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("listings")
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  requestedDate DateTime
+  status        BookingStatus @default(PENDING)
+  totalAmount   Float
+  
+  // Relations
+  tourist       User          @relation("TouristBookings", fields: [touristId], references: [id], onDelete: Cascade)
+  touristId     String
+  guide         User          @relation("GuideBookings", fields: [guideId], references: [id], onDelete: Cascade)
+  guideId       String
+  listing       Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId     String
+  
+  payment       Payment?
+  review        Review?
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("bookings")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int      // 1-5 stars
+  comment    String?
+  
+  // Relations
+  reviewer   User     @relation("ReviewGiver", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewerId String
+  reviewee   User     @relation("ReviewReceiver", fields: [revieweeId], references: [id], onDelete: Cascade)
+  revieweeId String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId  String   @unique
+  
+  createdAt  DateTime @default(now())
+
+  @@map("reviews")
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  amount          Float
+  currency        String        @default("USD")
+  stripePaymentId String        @unique
+  status          PaymentStatus @default(PENDING)
+  
+  // Relations
+  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId       String        @unique
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+enum Role {
+  TOURIST
+  GUIDE
+  ADMIN
+}
+
+enum Category {
+  FOOD
+  HISTORY
+  ART
+  ADVENTURE
+  NIGHTLIFE
+  SHOPPING
+  PHOTOGRAPHY
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
