@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Category } from '@prisma/client';
 
 const createListingZodSchema = z.object({
   body: z.object({
@@ -21,7 +22,7 @@ const createListingZodSchema = z.object({
       required_error: 'Max group size is required',
     }).positive('Max group size must be positive'),
     images: z.array(z.string()).optional(),
-    category: z.enum(['FOOD', 'HISTORY', 'ART', 'ADVENTURE', 'NIGHTLIFE', 'SHOPPING', 'PHOTOGRAPHY'], {
+    category: z.nativeEnum(Category, {
       required_error: 'Category is required',
     }),
     city: z.string({
@@ -39,7 +40,7 @@ const updateListingZodSchema = z.object({
     meetingPoint: z.string().optional(),
     maxGroupSize: z.number().positive().optional(),
     images: z.array(z.string()).optional(),
-    category: z.enum(['FOOD', 'HISTORY', 'ART', 'ADVENTURE', 'NIGHTLIFE', 'SHOPPING', 'PHOTOGRAPHY']).optional(),
+    category: z.nativeEnum(Category).optional(),
     city: z.string().optional(),
     isActive: z.boolean().optional(),
   }),

@@ -59,16 +59,21 @@ const loginUser = async (loginData: ILoginUser): Promise<ILoginUserResponse> => 
     throw new AppError(401, 'Password is incorrect');
   }
 
-  // Create access token
+  // Create access and refresh tokens
   const { id, role } = user;
-  const accessToken = jwtHelpers.createToken(
-    { userId: id, role },
+  const payload = { userId: id, role };
+  
+  const { accessToken, refreshToken } = jwtHelpers.createTokens(
+    payload,
     config.jwt.jwt_secret as string,
-    config.jwt.expires_in as string
+    config.jwt.jwt_refresh_secret as string,
+    config.jwt.expires_in as string,
+    config.jwt.refresh_expires_in as string
   );
 
   return {
     accessToken,
+    refreshToken,
     user: {
       id: user.id,
       email: user.email,
@@ -78,7 +83,43 @@ const loginUser = async (loginData: ILoginUser): Promise<ILoginUserResponse> => 
   };
 };
 
+const refreshToken = async (token: string) => {
+  // Verify refresh token
+  let verifiedToken = null;
+  try {
+    verifiedToken = jwtHelpers.verifyToken(
+      token,
+      config.jwt.jwt_refresh_secret as string
+    );
+  } catch (err) {
+    throw new AppError(403, 'Invalid refresh token');
+  }
+
+  const { userId } = verifiedToken;
+
+  // Check if user exists
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new AppError(404, 'User not found');
+  }
+
+  // Create new access token
+  const newAccessToken = jwtHelpers.createAccessToken(
+    { userId: user.id, role: user.role },
+    config.jwt.jwt_secret as string,
+    config.jwt.expires_in as string
+  );
+
+  return {
+    accessToken: newAccessToken,
+  };
+};
+
 export const AuthService = {
   registerUser,
   loginUser,
+  refreshToken,
 };

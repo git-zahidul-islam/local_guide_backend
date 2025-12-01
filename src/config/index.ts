@@ -9,7 +9,9 @@ export default {
   database_url: process.env.DATABASE_URL,
   jwt: {
     jwt_secret: process.env.JWT_SECRET,
+    jwt_refresh_secret: process.env.JWT_REFRESH_SECRET,
     expires_in: process.env.JWT_EXPIRES_IN,
+    refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN,
   },
   cloudinary: {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

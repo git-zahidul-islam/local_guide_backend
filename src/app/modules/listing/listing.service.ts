@@ -11,6 +11,7 @@ const createListing = async (guideId: string, payload: ICreateListing): Promise<
   const result = await prisma.listing.create({
     data: {
       ...payload,
+      images: payload.images || [],
       guideId,
     },
     include: {

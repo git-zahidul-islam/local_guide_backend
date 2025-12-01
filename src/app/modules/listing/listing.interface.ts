@@ -1,6 +1,8 @@
+import { Category } from '@prisma/client';
+
 export type IListingFilterRequest = {
   searchTerm?: string;
-  category?: string;
+  category?: Category;
   city?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -14,8 +16,8 @@ export type ICreateListing = {
   duration: number;
   meetingPoint: string;
   maxGroupSize: number;
-  images: string[];
-  category: string;
+  images?: string[];
+  category: Category;
   city: string;
 };
 
@@ -27,7 +29,7 @@ export type IUpdateListing = {
   meetingPoint?: string;
   maxGroupSize?: number;
   images?: string[];
-  category?: string;
+  category?: Category;
   city?: string;
   isActive?: boolean;
 };

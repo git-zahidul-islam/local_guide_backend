@@ -1,20 +1,50 @@
-import jwt, { JwtPayload, Secret } from 'jsonwebtoken';
+import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 
-const createToken = (
+const createAccessToken = (
   payload: Record<string, unknown>,
-  secret: Secret,
+  secret: string,
   expireTime: string
 ): string => {
-  return jwt.sign(payload, secret, {
-    expiresIn: expireTime,
-  });
+  const options: SignOptions = {
+    expiresIn: expireTime as SignOptions["expiresIn"],
+  };
+  return jwt.sign(payload, secret, options);
 };
 
-const verifyToken = (token: string, secret: Secret): JwtPayload => {
+const createRefreshToken = (
+  payload: Record<string, unknown>,
+  secret: string,
+  expireTime: string
+): string => {
+  const options: SignOptions = {
+    expiresIn: expireTime as SignOptions["expiresIn"],
+  };
+  return jwt.sign(payload, secret, options);
+};
+
+const verifyToken = (token: string, secret: string): JwtPayload => {
   return jwt.verify(token, secret) as JwtPayload;
 };
 
+const createTokens = (
+  payload: Record<string, unknown>,
+  accessSecret: string,
+  refreshSecret: string,
+  accessExpire: string,
+  refreshExpire: string
+) => {
+  const accessToken = createAccessToken(payload, accessSecret, accessExpire);
+  const refreshToken = createRefreshToken(payload, refreshSecret, refreshExpire);
+  
+  return {
+    accessToken,
+    refreshToken,
+  };
+};
+
 export const jwtHelpers = {
-  createToken,
+  createAccessToken,
+  createRefreshToken,
   verifyToken,
+  createTokens,
 };

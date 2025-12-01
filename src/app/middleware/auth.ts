@@ -7,17 +7,20 @@ import { prisma } from '../../shared/utils/prisma';
 const auth = (...requiredRoles: string[]) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Get authorization token
-      const token = req.headers.authorization;
+      // Get access token from cookies
+      const { accessToken } = req.cookies;
 
-      if (!token) {
-        throw new AppError(401, 'You are not authorized');
+      if (!accessToken) {
+        throw new AppError(401, 'You are not authorized - No access token provided');
       }
 
-      // Verify token
+      // Verify access token
       let verifiedUser = null;
-
-      verifiedUser = jwtHelpers.verifyToken(token, config.jwt.jwt_secret as string);
+      try {
+        verifiedUser = jwtHelpers.verifyToken(accessToken, config.jwt.jwt_secret as string);
+      } catch (err) {
+        throw new AppError(401, 'Invalid access token');
+      }
 
       req.user = verifiedUser; // role, userId
 

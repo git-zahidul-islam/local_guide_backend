@@ -4,6 +4,7 @@ import auth from '../../middleware/auth';
 import validateRequest from '../../middleware/validateRequest';
 import { ListingValidation } from './listing.validation';
 import { Router } from "express";
+import { Role } from '@prisma/client';
 
 const router = express.Router();
 
@@ -14,9 +15,9 @@ router.post(
   ListingController.createListing
 );
 
-router.get('/', ListingController.getAllListings);
+router.get('/', auth(Role.ADMIN,Role.GUIDE),ListingController.getAllListings);
 
-router.get('/:id', ListingController.getSingleListing);
+router.get('/:id',auth(Role.ADMIN,Role.GUIDE), ListingController.getSingleListing);
 
 router.patch(
   '/:id',
