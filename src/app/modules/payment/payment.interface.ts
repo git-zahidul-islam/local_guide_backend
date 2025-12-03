@@ -5,6 +5,9 @@ export type ICreatePaymentIntent = {
 };
 
 export type IConfirmPayment = {
-  paymentIntentId: string;
-  bookingId: string;
+  sessionId: string;
+};
+
+export type IPaymentStatus = {
+  sessionId: string;
 };

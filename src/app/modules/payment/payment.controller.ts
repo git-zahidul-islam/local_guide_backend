@@ -17,15 +17,22 @@ const createPaymentIntent = catchAsync(async (req: Request, res: Response) => {
 
 const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.user;
-  const result = await PaymentService.confirmPayment(userId, req.body);
+  const { sessionId } = req.body;
+  const result = await PaymentService.confirmPayment(userId, sessionId);
+
+  const message = result.status === 'paid' 
+    ? 'Payment confirmed successfully' 
+    : 'Payment status retrieved successfully';
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: 'Payment confirmed successfully',
+    message,
     data: result,
   });
 });
+
+
 
 const getAllPayments = catchAsync(async (req: Request, res: Response) => {
   const { userId, role } = req.user;

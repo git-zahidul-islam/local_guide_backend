@@ -14,11 +14,8 @@ const createPaymentIntentZodSchema = z.object({
 
 const confirmPaymentZodSchema = z.object({
   body: z.object({
-    paymentIntentId: z.string({
-      required_error: 'Payment intent ID is required',
-    }),
-    bookingId: z.string({
-      required_error: 'Booking ID is required',
+    sessionId: z.string({
+      required_error: 'Session ID is required',
     }),
   }),
 });
