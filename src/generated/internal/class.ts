@@ -17,8 +17,8 @@ import type * as Prisma from "./prismaNamespace"
 
 const config: runtime.GetPrismaClientConfig = {
   "previewFeatures": [],
-  "clientVersion": "7.1.0",
-  "engineVersion": "ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba",
+  "clientVersion": "7.0.1",
+  "engineVersion": "f09f2815f091dbba658cdcd2264306d88bb5bda6",
   "activeProvider": "postgresql",
   "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../src/generated\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\n// -------------------------\n// Users & Roles\n// \n\nmodel User {\n  id       String   @id @default(cuid())\n  name     String\n  email    String   @unique\n  phone    String?\n  address  String?\n  password String?\n  role     UserRole @default(TOURIST)\n\n  profilePic String?\n  profileId  String?\n  bio        String?\n  languages  String[] // [\"English\", \"Bangla\"]\n\n  // Tourist Fields\n  travelPrefs String?\n\n  // Guide Fields\n  expertise String?\n  dailyRate Float?\n\n  status    UserStatus @default(ACTIVE)\n  createdAt DateTime   @default(now())\n  updatedAt DateTime   @updatedAt\n\n  tours    Tour[]\n  bookings Booking[]\n  reviews  Review[]\n}\n\nenum UserStatus {\n  ACTIVE\n  INACTIVE\n  BLOCKED\n  DELETED\n}\n\nenum UserRole {\n  TOURIST\n  GUIDE\n  ADMIN\n}\n\n// -------------------------\n// Tour Listings\n// -------------------------\nmodel Tour {\n  id           String @id @default(cuid())\n  title        String\n  slug         String @unique\n  description  String\n  itinerary    String\n  fee          Float\n  duration     String // in hours\n  meetingPoint String\n\n  // Location details\n  address String?\n\n  // Group size\n  maxGroupSize Int\n  minGroupSize Int @default(1)\n\n  // Timing\n  availableDays String[] // e.g., [\"Monday\", \"Wednesday\", \"Friday\"]\n  startTime     String? // e.g., \"09:00\"\n  endTime       String? // e.g., \"17:00\"\n\n  // Pricing details\n  currency      String  @default(\"USD\")\n  isDiscount    Boolean @default(false)\n  discountPrice Float?\n\n  // WHAT'S INCLUDED - Add these important arrays\n  includes     String[] // What's included in price\n  excludes     String[] // What's NOT included\n  whatToBring  String[] // What travelers should bring\n  requirements String[] // Requirements/restrictions\n\n  // Categories & Tags\n  category TourCategory\n  city     String\n  country  String\n  tags     String[]\n\n  // Ratings & Reviews\n  averageRating Float? @default(0)\n  reviewCount   Int    @default(0)\n  totalBookings Int    @default(0)\n\n  // Status & Metadata\n  isActive           Boolean  @default(true)\n  isFeatured         Boolean  @default(false)\n  isInstant          Boolean  @default(false)\n  cancellationPolicy String?\n  createdAt          DateTime @default(now())\n  updatedAt          DateTime @updatedAt\n\n  // Guide Information\n  guideNote String?\n\n  // Relations\n  bookings      Booking[]\n  reviews       Review[]\n  user          User           @relation(fields: [userId], references: [id])\n  userId        String\n  tourImages    TourImages[]\n  tourLanguages TourLanguage[]\n\n  @@index([userId])\n  @@index([category])\n  @@index([city])\n  @@index([country])\n  @@index([averageRating])\n  @@index([isFeatured])\n  @@index([isActive])\n}\n\nenum TourCategory {\n  FOOD\n  ART\n  ADVENTURE\n  HISTORY\n  NIGHTLIFE\n  NATURE\n  WILDLIFE\n  SHOPPING\n  HERITAGE\n  OTHER\n}\n\nmodel TourLanguage {\n  id     String @id @default(cuid())\n  name   String\n  tour   Tour   @relation(fields: [tourId], references: [id])\n  tourId String\n}\n\n// -------------------------\n// TourImages\n// -------------------------\n\nmodel TourImages {\n  id        String   @id @default(cuid())\n  imageUrl  String?\n  imageId   String?\n  tourId    String\n  tour      Tour     @relation(fields: [tourId], references: [id])\n  createdAt DateTime @default(now())\n}\n\n// -------------------------\n// Bookings\n// -------------------------\nmodel Booking {\n  id          String  @id @default(cuid())\n  bookingCode String? @unique\n  tour        Tour    @relation(fields: [tourId], references: [id])\n  tourId      String\n\n  status    BookingStatus @default(PENDING)\n  startTime DateTime\n  endTime   DateTime\n\n  payment Payment?\n\n  // Change from reviews[] (plural) to review (singular)\n  review Review? // One booking can have one review\n\n  createdAt             DateTime               @default(now())\n  updatedAt             DateTime               @updatedAt\n  user                  User                   @relation(fields: [userId], references: [id])\n  userId                String\n  sslcommerzTransaction SSLCommerzTransaction?\n\n  // Add indexes for better queries\n  @@index([userId])\n  @@index([status])\n  @@index([startTime])\n}\n\nenum BookingStatus {\n  PENDING\n  CONFIRMED\n  COMPLETED\n  CANCELLED\n}\n\n// -------------------------\n// Payments\n// -------------------------\nmodel Payment {\n  id        String   @id @default(cuid())\n  booking   Booking? @relation(fields: [bookingId], references: [id])\n  bookingId String?  @unique\n\n  amount        Float\n  method        PaymentMethod\n  status        PaymentStatus @default(PENDING)\n  transactionId String? // from Stripe/other gateway\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n}\n\nenum PaymentMethod {\n  STRIPE\n  SSL_COMMERZ\n  OTHER\n}\n\nenum PaymentStatus {\n  PENDING\n  COMPLETED\n  FAILED\n  CANCELLED\n}\n\nmodel SSLCommerzTransaction {\n  id              String   @id @default(cuid())\n  transactionId   String   @unique // Your generated tran_id\n  bookingId       String?  @unique\n  booking         Booking? @relation(fields: [bookingId], references: [id])\n  sessionKey      String? // From SSLCommerz response\n  gatewayUrl      String? // Payment gateway URL\n  valId           String? // Validation ID from SSLCommerz\n  amount          Float\n  currency        String   @default(\"BDT\")\n  status          String   @default(\"PENDING\") // PENDING, SUCCESS, FAILED, CANCELLED\n  bankTransaction String? // Bank transaction ID\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n}\n\n// -------------------------\n// Reviews\n// -------------------------\nmodel Review {\n  id         String  @id @default(cuid())\n  reviewCode String? @unique\n  tour       Tour    @relation(fields: [tourId], references: [id])\n  tourId     String\n\n  booking   Booking? @relation(fields: [bookingId], references: [id])\n  bookingId String?  @unique // Make it unique to prevent one booking having multiple reviews\n\n  rating Int\n\n  comment   String?\n  createdAt DateTime @default(now())\n\n  user   User   @relation(fields: [userId], references: [id])\n  userId String\n\n  @@unique([userId, tourId]) // Prevent user reviewing same tour multiple times\n  // Add indexes for better performance\n  @@index([userId])\n  @@index([tourId])\n}\n",
   "runtimeDataModel": {
@@ -62,7 +62,7 @@ export interface PrismaClientConstructor {
    * const users = await prisma.user.findMany()
    * ```
    * 
-   * Read more in our [docs](https://pris.ly/d/client).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
    */
 
   new <
@@ -84,7 +84,7 @@ export interface PrismaClientConstructor {
  * const users = await prisma.user.findMany()
  * ```
  * 
- * Read more in our [docs](https://pris.ly/d/client).
+ * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
  */
 
 export interface PrismaClient<
@@ -113,7 +113,7 @@ export interface PrismaClient<
    * const result = await prisma.$executeRaw`UPDATE User SET cool = ${true} WHERE email = ${'user@email.com'};`
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $executeRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<number>;
 
@@ -125,7 +125,7 @@ export interface PrismaClient<
    * const result = await prisma.$executeRawUnsafe('UPDATE User SET cool = $1 WHERE email = $2 ;', true, 'user@email.com')
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $executeRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<number>;
 
@@ -136,7 +136,7 @@ export interface PrismaClient<
    * const result = await prisma.$queryRaw`SELECT * FROM User WHERE id = ${1} OR email = ${'user@email.com'};`
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $queryRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<T>;
 
@@ -148,7 +148,7 @@ export interface PrismaClient<
    * const result = await prisma.$queryRawUnsafe('SELECT * FROM User WHERE id = $1 OR email = $2;', 1, 'user@email.com')
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<T>;
 

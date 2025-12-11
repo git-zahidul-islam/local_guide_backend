@@ -6,13 +6,12 @@
   "type": "commonjs",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "prisma generate && tsc",
+    "build": "tsc && prisma generate",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "vercel-build": "prisma generate && tsc",
-    "render-build": "npm install && npx prisma generate && npx tsc"
+    "vercel-build": "prisma generate && tsc"
   },
   "keywords": [],
   "author": "",

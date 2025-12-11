@@ -37,8 +37,8 @@ app.get("/api/info", (req, res) => {
   });
 });
 
-// Start server (skip only for Vercel)
-if (!process.env.VERCEL) {
+// Start server only in development/local
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   
   connectionDB().then((connected) => {
