@@ -1,49 +1,70 @@
-import express, { Application } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import cookieParser from 'cookie-parser';
-import globalErrorHandler from './app/error/globalErrorHandler';
-import routes from './routes';
-import config from './config';
-import notFound from './app/middleware/notFound';
+import express, { Request, Response } from "express"
 
-const app: Application = express();
+import cors from "cors"
+import cookieParser from "cookie-parser"
+import { userRoutes } from "./modules/user/user.router";
+import { authRoutes } from "./modules/auth/auth.router";
+import globalErrorHandler from "./middleware/globalErrorHandler";
+import { tourRoutes } from "./modules/tour/tour.router";
+import { bookingRoutes } from "./modules/booking/booking.router";
+import { reviewRoutes } from "./modules/review/review.router";
+import { paymentRoutes } from "./modules/payment/payement.router";
+// import { randomBytes } from "crypto";
 
-// Security middleware
-app.use(helmet());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+export const app = express()
+const corsOptions = {
+    origin: [
+        'http://localhost:3000',
+        'https://local-guide-frontend.vercel.app',
+        /\.vercel\.app$/ // Allow all Vercel subdomains
+    ],
+    credentials: true, // ← MUST BE TRUE
+    exposedHeaders: ['set-cookie'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Origin']
+};
+
+app.use(cors(corsOptions));
+
+app.use(cors(corsOptions));
+
+// Or if you want to allow all origins in development
+app.use(cors({
+  origin: true, // Allow all origins
+  credentials: true
+}));
+
+app.use(express.json())
+app.use(cookieParser()); 
+
+
+// router 
+
+app.use('/api/auth', userRoutes)
+app.use('/api/auth', authRoutes)
+app.use('/api/tour', tourRoutes)
+app.use('/api/bookings', bookingRoutes)
+app.use('/api/payment', paymentRoutes)
+app.use('/api/reviews', reviewRoutes)
+
+// Test route for Vercel
+app.get("/test", (req, res) => {
+  res.json({
+    message: "API is working!",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+  });
 });
-app.use(limiter);
 
-// CORS
-app.use(
-  cors({
-    origin: config.client_url,
-    credentials: true,
-  })
-);
+// Default route testing
 
-// Parser
-app.use(express.json({ limit: '16kb' }));
-app.use(express.urlencoded({ extended: true, limit: '16kb' }));
-app.use(cookieParser());
+app.get('/',(req:Request, res:Response)=>{
+    res.send("Abdur Rahman Server is running")
+})
 
-app.get('/', (req, res) => { 
-  res.json({ message: 'Tourism guide' });
-});
+app.use(globalErrorHandler)
 
-// Application routes
-app.use('/api/v1', routes);
+// const secretKey = randomBytes(32).toString("hex"); // Generates 32 random bytes and encodes to hex string
+// console.log(secretKey);
 
-// Handle not found
-app.use(notFound);
 
-// Global error handler
-app.use(globalErrorHandler);
-
-export default app;

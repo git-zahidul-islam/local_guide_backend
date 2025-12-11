@@ -1,139 +1,195 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
+
+// -------------------------
+// Users & Roles
+// 
 
 model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  password          String
-  name              String
-  role              Role      @default(TOURIST)
-  profilePic        String?
-  bio               String?
-  languages         String[]
-  
-  // Guide-specific fields
-  expertise         String[]
-  dailyRate         Float?
-  isVerified        Boolean   @default(false)
-  
-  // Tourist-specific fields
-  travelPreferences String[]
-  
-  // Relations
-  listings          Listing[]
-  bookingsAsTourist Booking[] @relation("TouristBookings")
-  bookingsAsGuide   Booking[] @relation("GuideBookings")
-  reviewsGiven      Review[]  @relation("ReviewGiver")
-  reviewsReceived   Review[]  @relation("ReviewReceiver")
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id       String   @id @default(cuid())
+  name     String
+  email    String   @unique
+  phone    String?
+  address  String?
+  password String?
+  role     UserRole @default(TOURIST)
 
-  @@map("users")
+  profilePic String?
+  profileId  String?
+  bio        String?
+  languages  String[] // ["English", "Bangla"]
+
+  // Tourist Fields
+  travelPrefs String?
+
+  // Guide Fields
+  expertise String?
+  dailyRate Float?
+
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  tours    Tour[]
+  bookings Booking[]
+  reviews  Review[]
 }
 
-model Listing {
-  id           String    @id @default(cuid())
-  title        String
-  description  String
-  tourFee      Float
-  duration     Int       // in hours
-  meetingPoint String
-  maxGroupSize Int
-  images       String[]
-  category     Category
-  city         String
-  isActive     Boolean   @default(true)
-  
-  // Relations
-  guide        User      @relation(fields: [guideId], references: [id], onDelete: Cascade)
-  guideId      String
-  bookings     Booking[]
-  
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  @@map("listings")
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  DELETED
 }
 
-model Booking {
-  id            String        @id @default(cuid())
-  requestedDate DateTime
-  status        BookingStatus @default(PENDING)
-  totalAmount   Float
-  
-  // Relations
-  tourist       User          @relation("TouristBookings", fields: [touristId], references: [id], onDelete: Cascade)
-  touristId     String
-  guide         User          @relation("GuideBookings", fields: [guideId], references: [id], onDelete: Cascade)
-  guideId       String
-  listing       Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  listingId     String
-  
-  payment       Payment?
-  review        Review?
-  
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  @@map("bookings")
-}
-
-model Review {
-  id         String   @id @default(cuid())
-  rating     Int      // 1-5 stars
-  comment    String?
-  
-  // Relations
-  reviewer   User     @relation("ReviewGiver", fields: [reviewerId], references: [id], onDelete: Cascade)
-  reviewerId String
-  reviewee   User     @relation("ReviewReceiver", fields: [revieweeId], references: [id], onDelete: Cascade)
-  revieweeId String
-  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  bookingId  String   @unique
-  
-  createdAt  DateTime @default(now())
-
-  @@map("reviews")
-}
-
-model Payment {
-  id              String        @id @default(cuid())
-  amount          Float
-  currency        String        @default("USD")
-  stripePaymentId String        @unique
-  status          PaymentStatus @default(PENDING)
-  
-  // Relations
-  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  bookingId       String        @unique
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  @@map("payments")
-}
-
-enum Role {
+enum UserRole {
   TOURIST
   GUIDE
   ADMIN
 }
 
-enum Category {
+// -------------------------
+// Tour Listings
+// -------------------------
+model Tour {
+  id           String @id @default(cuid())
+  title        String
+  slug         String @unique
+  description  String
+  itinerary    String
+  fee          Float
+  duration     String // in hours
+  meetingPoint String
+  
+  // Location details
+  address      String?
+
+  // Group size
+  maxGroupSize Int
+  minGroupSize Int @default(1)
+  
+  // Timing
+  availableDays String[] // e.g., ["Monday", "Wednesday", "Friday"]
+  startTime     String?  // e.g., "09:00"
+  endTime       String?  // e.g., "17:00"
+  
+  // Pricing details
+  currency       String   @default("USD")
+  isDiscount     Boolean  @default(false)
+  discountPrice  Float?
+  
+  // WHAT'S INCLUDED - Add these important arrays
+  includes       String[] // What's included in price
+  excludes       String[] // What's NOT included
+  whatToBring    String[] // What travelers should bring
+  requirements   String[] // Requirements/restrictions
+  
+  // Categories & Tags
+  category TourCategory
+  city     String
+  country  String
+  tags     String[]
+  
+  // Ratings & Reviews
+  averageRating Float?   @default(0)
+  reviewCount   Int      @default(0)
+  totalBookings Int      @default(0)
+  
+  // Status & Metadata
+  isActive     Boolean  @default(true)
+  isFeatured   Boolean  @default(false)
+  isInstant    Boolean  @default(false)
+  cancellationPolicy String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Guide Information
+  guideNote    String?
+  
+  // Relations
+  bookings      Booking[]
+  reviews       Review[]
+  user          User           @relation(fields: [userId], references: [id])
+  userId        String
+  tourImages    TourImages[]
+  tourLanguages TourLanguage[]
+  
+  @@index([userId])
+  @@index([category])
+  @@index([city])
+  @@index([country])
+  @@index([averageRating])
+  @@index([isFeatured])
+  @@index([isActive])
+}
+
+enum TourCategory {
   FOOD
-  HISTORY
   ART
   ADVENTURE
+  HISTORY
   NIGHTLIFE
+  NATURE
+  WILDLIFE
   SHOPPING
-  PHOTOGRAPHY
+  HERITAGE
+  OTHER
+}
+
+model TourLanguage {
+  id     String @id @default(cuid())
+  name   String
+  tour   Tour   @relation(fields: [tourId], references: [id])
+  tourId String
+}
+
+// -------------------------
+// TourImages
+// -------------------------
+
+model TourImages {
+  id        String   @id @default(cuid())
+  imageUrl  String?
+  imageId   String?
+  tourId    String
+  tour      Tour     @relation(fields: [tourId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+// -------------------------
+// Bookings
+// -------------------------
+model Booking {
+  id          String  @id @default(cuid())
+  bookingCode String? @unique
+  tour        Tour    @relation(fields: [tourId], references: [id])
+  tourId      String
+
+  status    BookingStatus @default(PENDING)
+  startTime DateTime
+  endTime   DateTime
+
+  payment Payment?
+
+  // Change from reviews[] (plural) to review (singular)
+  review Review? // One booking can have one review
+
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  user                  User                   @relation(fields: [userId], references: [id])
+  userId                String
+  sslcommerzTransaction SSLCommerzTransaction?
+
+  // Add indexes for better queries
+  @@index([userId])
+  @@index([status])
+  @@index([startTime])
 }
 
 enum BookingStatus {
@@ -143,9 +199,75 @@ enum BookingStatus {
   CANCELLED
 }
 
+// -------------------------
+// Payments
+// -------------------------
+model Payment {
+  id        String   @id @default(cuid())
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+  bookingId String?  @unique
+
+  amount        Float
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String? // from Stripe/other gateway
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PaymentMethod {
+  STRIPE
+  SSL_COMMERZ
+  OTHER
+}
+
 enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
-  REFUNDED
+  CANCELLED
+}
+
+model SSLCommerzTransaction {
+  id              String   @id @default(cuid())
+  transactionId   String   @unique // Your generated tran_id
+  bookingId       String?  @unique
+  booking         Booking? @relation(fields: [bookingId], references: [id])
+  sessionKey      String? // From SSLCommerz response
+  gatewayUrl      String? // Payment gateway URL
+  valId           String? // Validation ID from SSLCommerz
+  amount          Float
+  currency        String   @default("BDT")
+  status          String   @default("PENDING") // PENDING, SUCCESS, FAILED, CANCELLED
+  bankTransaction String? // Bank transaction ID
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -------------------------
+// Reviews
+// -------------------------
+model Review {
+  id         String  @id @default(cuid())
+  reviewCode String? @unique
+  tour       Tour    @relation(fields: [tourId], references: [id])
+  tourId     String
+
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+  bookingId String?  @unique // Make it unique to prevent one booking having multiple reviews
+
+  rating        Int
+
+  comment       String?
+  createdAt     DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  @@unique([userId, tourId]) // Prevent user reviewing same tour multiple times
+  // Add indexes for better performance
+  @@index([userId])
+  @@index([tourId])
 }
