@@ -16,7 +16,7 @@ export const app = express()
 const corsOptions = {
     origin: [
         'http://localhost:3000',
-        'https://local-guide-frontend.vercel.app',
+        'https://local-guide-frontend-chi.vercel.app',
         /\.vercel\.app$/ // Allow all Vercel subdomains
     ],
     credentials: true, // ← MUST BE TRUE
@@ -59,7 +59,7 @@ app.get("/test", (req, res) => {
 // Default route testing
 
 app.get('/',(req:Request, res:Response)=>{
-    res.send("Abdur Rahman Server is running")
+    res.send("Local Guide Server is running")
 })
 
 app.use(globalErrorHandler)
