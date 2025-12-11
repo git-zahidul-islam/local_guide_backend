@@ -13,26 +13,22 @@ import { paymentRoutes } from "./modules/payment/payement.router";
 
 
 export const app = express()
+
+// CORS configuration
 const corsOptions = {
-    origin: [
-        'http://localhost:3000',
-        'https://local-guide-frontend.vercel.app',
-        /\.vercel\.app$/ // Allow all Vercel subdomains
-    ],
-    credentials: true, // ← MUST BE TRUE
+    origin: process.env.NODE_ENV === 'production' 
+        ? [
+            'https://local-guide-frontend.vercel.app',
+            /\.vercel\.app$/,
+            /\.render\.com$/
+          ]
+        : true, // Allow all origins in development
+    credentials: true,
     exposedHeaders: ['set-cookie'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Origin']
 };
 
 app.use(cors(corsOptions));
-
-app.use(cors(corsOptions));
-
-// Or if you want to allow all origins in development
-app.use(cors({
-  origin: true, // Allow all origins
-  credentials: true
-}));
 
 app.use(express.json())
 app.use(cookieParser()); 
