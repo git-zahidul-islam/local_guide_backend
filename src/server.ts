@@ -1,57 +1,67 @@
-import dotenv from "dotenv";
-import { app } from "./app";
-import { prisma } from "./lib/prisma";
+import { Server } from "http";
+import mongoose from "mongoose";
+import app from "./app";
+import { envVars } from "./app/config/env";
+let server: Server;
 
-dotenv.config();
-
-// Connect to database
-async function connectionDB() {
+const startServer = async () => {
   try {
-    await prisma.$connect();
-    console.log("✅ Prisma connected successfully");
-    return true;
-  } catch (err) {
-    console.error("❌ Prisma connection failed:", err);
-    return false;
+    await mongoose.connect(envVars.DB_URL);
+    console.log("Connected to db");
+    server = app.listen(envVars.PORT, () => {
+      console.log(`Server is listening to port ${envVars.PORT}`);
+    });
+  } catch (error) {
+    console.log(error);
   }
-}
+};
 
-// Health check endpoint
-app.get("/health", async (req, res) => {
-  const dbConnected = await connectionDB();
-  
-  res.json({
-    status: dbConnected ? "healthy" : "unhealthy",
-    database: dbConnected ? "connected" : "disconnected",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
-  });
-});
+startServer();
 
-// Additional info endpoint
-app.get("/api/info", (req, res) => {
-  res.json({
-    name: "Local Guide API",
-    version: "1.0.0",
-    status: "running",
-  });
-});
+// unhandled rejection
+process.on("unhandledRejection", (err) => {
+  console.log("unhandled Rejection detected... Server shutting down..", err);
 
-// Start server only in development/local
-if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
-  const PORT = process.env.PORT || 5000;
-  
-  connectionDB().then((connected) => {
-    if (connected) {
-      app.listen(PORT, () => {
-        console.log(`🚀 Server is running on port ${PORT}`);
-      });
-    } else {
-      console.error("❌ Cannot start server without database connection");
+  if (server) {
+    server.close(() => {
       process.exit(1);
-    }
-  });
-}
+    });
+  }
 
-// Export the app for Vercel
-export default app;
+  process.exit(1);
+});
+// uncaught exception
+process.on("uncaughtException", (err) => {
+  console.log("uncaught Exception detected... Server shutting down..", err);
+
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+  }
+  process.exit(1);
+});
+
+// signal termination system aws or vercel gives
+process.on("SIGTERM", () => {
+  console.log("SIGTERM signal received... Server shutting down..");
+
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+  }
+  process.exit(1);
+});
+
+// if i manually shut down the server
+process.on("SIGINT", () => {
+  console.log("SIGINT signal received... Server shutting down..");
+
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+  }
+  process.exit(1);
+});

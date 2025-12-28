@@ -1,66 +1,64 @@
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextFunction, Request, Response } from "express";
-import HTTP_STATUS from "http-status-codes"
-import { Prisma } from "../generated/client";
+import AppError from "../error/AppError";
+import { envVars } from "../app/config/env";
+import { TErrorSources } from "../interfaces/error";
+import { handlerDuplicateError } from "../error/duplicateError";
+import { handleCastError } from "../error/castError";
+import { handlerZodError } from "../error/zodError";
+import { handlerValidationError } from "../error/validationError";
 
+export const globalErrorHandler = (
+  err: any,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  if (envVars.NODE_ENV === "development") {
+    console.log(err);
+  }
 
-const globalErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+  let errorSources: TErrorSources[] = [];
+  let statusCode = 500;
+  let message = "Something Went Wrong!!";
 
-    let statusCode: number = err.statusCode || 500;
-    let success: boolean = false;
-    let message: string = err.message || "Internal Server Error";
-    let error = err
+  //Duplicate error
+  if (err.code === 11000) {
+    const simplifiedError = handlerDuplicateError(err);
+    statusCode = simplifiedError.statusCode;
+    message = simplifiedError.message;
+  }
+  // Object ID error / Cast Error
+  else if (err.name === "CastError") {
+    const simplifiedError = handleCastError(err);
+    statusCode = simplifiedError.statusCode;
+    message = simplifiedError.message;
+  } else if (err.name === "ZodError") {
+    const simplifiedError = handlerZodError(err);
+    statusCode = simplifiedError.statusCode;
+    message = simplifiedError.message;
+    errorSources = simplifiedError.errorSources as TErrorSources[];
+  }
+  //Mongoose Validation Error
+  else if (err.name === "ValidationError") {
+    const simplifiedError = handlerValidationError(err);
+    statusCode = simplifiedError.statusCode;
+    errorSources = simplifiedError.errorSources as TErrorSources[];
+    message = simplifiedError.message;
+  } else if (err instanceof AppError) {
+    statusCode = err.statusCode;
+    message = err.message;
+  } else if (err instanceof Error) {
+    statusCode = 500;
+    message = err.message;
+  }
 
-    if (err instanceof Prisma.PrismaClientKnownRequestError) {
-        if (err.code === "P2002") {
-            // console.log(err?.meta?.driverAdapterError?.cause?.constraint?.fields[0])
-            message = `This ${err?.meta?.modelName} already exists.`,
-                error = err?.meta,
-                statusCode = HTTP_STATUS.BAD_REQUEST
-        }
-       if(err.code === "P2013"){
-        
-        message = `${err.meta?.target} is required.`,
-           error = err,
-           statusCode = HTTP_STATUS.BAD_REQUEST
-           console.log("from global handler error",message)
-       }
-
-       if(err.code === "P2025"){
-        message = `${err?.meta?.modelName} not found.`,
-              error = err,
-              statusCode = HTTP_STATUS.NOT_FOUND
-       }
-
-       if(err.code === "P2003"){
-        message=`${err?.meta?.constraint} is required`,
-        error = err,
-        statusCode = HTTP_STATUS.BAD_REQUEST
-       }
-    }
-
-    else if (err instanceof Prisma.PrismaClientValidationError) {
-        message = "Validation Error",
-            error = err.message,
-            statusCode = HTTP_STATUS.BAD_REQUEST
-    }
-    else if (err instanceof Prisma.PrismaClientUnknownRequestError) {
-        message = "Unknown Prisma error occured!",
-            error = err.message,
-            statusCode = HTTP_STATUS.BAD_REQUEST
-    }
-    else if (err instanceof Prisma.PrismaClientInitializationError) {
-        message = "Prisma client failed to initialize!",
-            error = err.message,
-            statusCode = HTTP_STATUS.BAD_REQUEST
-    }
-
-
-    res.status(statusCode).json({
-        success,
-        message,
-        error
-    })
-}
-
-export default globalErrorHandler;
+  res.status(statusCode).json({
+    success: false,
+    message,
+    errorSources,
+    err: envVars.NODE_ENV === "development" ? err : null,
+    stack: envVars.NODE_ENV === "development" ? err.stack : null,
+  });
+};
