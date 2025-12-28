@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node ./dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts",
-    "build": "bash render-build.sh",
+    "build": "tsc --skipLibCheck",
     "render-build": "bash render-build.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -36,7 +36,6 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/mongoose": "^5.11.96",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.10.4",
     "@types/stripe": "^8.0.416",
