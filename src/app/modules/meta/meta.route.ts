@@ -14,6 +14,13 @@ metaRoute.get(
   MetaController.getDashboardStats
 );
 
+// Guide-specific dashboard route
+metaRoute.get(
+  "/dashboard/guide",
+  auth([Role.GUIDE]),
+  MetaController.getDashboardStats
+);
+
 // Admin-only dashboard stats (full platform overview)
 metaRoute.get(
   "/dashboard/admin",

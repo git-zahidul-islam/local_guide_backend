@@ -6,6 +6,34 @@ import { sendResponse } from "../../../utils/sendResponse";
 import { PaymentService } from "./payments.service";
 import { envVars } from "../../config/env";
 
+const createPaymentIntent = catchAsync(async (req: Request, res: Response) => {
+  const { bookingId } = req.body;
+  const userId = req.user._id;
+
+  const result = await PaymentService.createPaymentIntent(bookingId, userId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Payment intent created successfully",
+    data: result,
+  });
+});
+
+const confirmPayment = catchAsync(async (req: Request, res: Response) => {
+  const { paymentIntentId } = req.body;
+  const userId = req.user._id;
+
+  const result = await PaymentService.confirmPayment(paymentIntentId, userId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Payment confirmed successfully",
+    data: result,
+  });
+});
+
 const handleStripeWebhookEvent = catchAsync(
   async (req: Request, res: Response) => {
     const sig = req.headers["stripe-signature"] as string;
@@ -30,5 +58,7 @@ const handleStripeWebhookEvent = catchAsync(
 );
 
 export const PaymentController = {
+  createPaymentIntent,
+  confirmPayment,
   handleStripeWebhookEvent,
 };

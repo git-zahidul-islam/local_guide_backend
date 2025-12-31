@@ -15,7 +15,8 @@ export const globalErrorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  if (envVars.NODE_ENV === "development") {
+  // Only log errors in development, and skip 401 authentication errors
+  if (envVars.NODE_ENV === "development" && !(err instanceof AppError && err.statusCode === 401)) {
     console.log(err);
   }
 
