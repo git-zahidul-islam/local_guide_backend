@@ -5,7 +5,6 @@ import cookieParser from "cookie-parser";
 import { notFoundRoute } from "./middleware/notFoundRoute";
 import dotenv from "dotenv";
 import { globalErrorHandler } from "./middleware/globalErrorHandler";
-import { PaymentController } from "./app/modules/payments/payments.controller";
 import { envVars } from "./app/config/env";
 
 // Load env vars
@@ -13,11 +12,6 @@ dotenv.config();
 
 const app = express();
 app.use(cookieParser());
-app.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  PaymentController.handleStripeWebhookEvent
-);
 
 // CORS configuration
 const corsOptions = {
