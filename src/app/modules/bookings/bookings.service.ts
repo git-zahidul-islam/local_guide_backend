@@ -308,10 +308,8 @@ const createPaymentSession = async (bookingId: string, userId: string) => {
         },
       ],
       expires_at: Math.floor(Date.now() / 1000) + 23 * 60 * 60 + 59 * 60,
-      success_url: `${
-        process.env.FRONTEND_URL
-      }/dashboard/tourist/my-trips?payment=success&bookingId=${booking._id.toString()}`,
-      cancel_url: `${process.env.FRONTEND_URL}/tours/${listing._id.toString()}`,
+      success_url: `${process.env.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/dashboard/tourist/my-trips`,
     });
 
     // Update payment with new session info
@@ -409,6 +407,65 @@ const getAllBookings = async () => {
 //   return await Booking.findByIdAndUpdate(id, { status }, { new: true });
 // };
 
+// Add payment confirmation function
+const confirmPaymentSession = async (sessionId: string, userId: string) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    // Retrieve Stripe session
+    const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (stripeSession.payment_status !== "paid") {
+      throw new Error("Payment not completed");
+    }
+
+    const { bookingId, paymentId } = stripeSession.metadata as any;
+
+    if (!bookingId || !paymentId) {
+      throw new Error("Invalid session metadata");
+    }
+
+    // Find booking and payment
+    const booking = await Booking.findById(bookingId).session(session);
+    const payment = await Payment.findById(paymentId).session(session);
+
+    if (!booking || !payment) {
+      throw new Error("Booking or Payment not found");
+    }
+
+    // Debug logging
+    console.log('Booking user:', booking.user);
+    console.log('User ID:', userId);
+    console.log('Booking user toString:', booking.user.toString());
+    console.log('User ID toString:', userId.toString());
+
+    // Verify user owns this booking
+    if (booking.user.toString() !== userId.toString()) {
+      throw new Error("Unauthorized");
+    }
+
+    // Update payment status
+    payment.status = PaymentStatus.PAID;
+    payment.paymentDate = new Date();
+    payment.stripeSession = stripeSession;
+    await payment.save({ session });
+
+    // Update booking status to COMPLETED
+    booking.status = BookingStatus.COMPLETED;
+    await booking.save({ session });
+
+    await session.commitTransaction();
+    return { success: true };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
 export const bookingService = {
   createBooking,
   getMyBookings,
@@ -417,4 +474,5 @@ export const bookingService = {
   getUpcomingBookings,
   getPendingBookings,
   createPaymentSession,
+  confirmPaymentSession,
 };
