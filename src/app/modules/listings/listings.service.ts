@@ -93,6 +93,19 @@ const updateListingStatus = async (id: string, isActive: boolean) => {
 const getMyListings = async (userId: string) => {
   return await Listing.find({ guide: userId }).sort({ createdAt: -1 });
 };
+
+const getPublicListings = async () => {
+  const listings = await Listing.find()
+    .select('_id city images')
+    .limit(4);
+        
+  return listings.map(listing => ({
+    _id: listing._id,
+    city: listing.city,
+    image: listing.images?.[0] || null
+  }));
+};
+
 export const listingService = {
   createListing,
   getAllListings,
@@ -101,4 +114,5 @@ export const listingService = {
   deleteListing,
   updateListingStatus, // Add this new function
   getMyListings,
+  getPublicListings
 };

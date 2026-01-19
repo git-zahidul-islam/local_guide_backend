@@ -10,6 +10,7 @@ import {
   deleteListing,
   updateListingStatus,
   getMyListings,
+  getPublicListings
 } from "./listings.controller";
 import { validateRequest } from "../../../middleware/validateRequest";
 import { auth } from "../../../middleware/auth";
@@ -19,6 +20,7 @@ import { fileUploader } from "../../../utils/fileUploader";
 const router = express.Router();
 
 router.get("/", getAllListings);
+router.get("/public", getPublicListings);
 router.get("/my-listings", auth([Role.GUIDE]), getMyListings);
 router.get(
   "/:id",
