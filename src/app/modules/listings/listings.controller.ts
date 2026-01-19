@@ -183,6 +183,18 @@ const updateListingStatus = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+const getPublicListings = catchAsync(async (req: Request, res: Response) => {
+  const result = await listingService.getPublicListings();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Feature Listings fetched successfully",
+    data: result,
+  });
+});
+
 export {
   createListing,
   getAllListings,
@@ -191,4 +203,5 @@ export {
   deleteListing,
   updateListingStatus,
   getMyListings,
+  getPublicListings
 };
